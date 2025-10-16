@@ -18,7 +18,6 @@ public class RayCapture : MonoBehaviour
 
     [Header("Efectos")]
     public GameObject efectoCaptura;        // Partículas al capturar
-    public AudioClip sonidoDisparo;
     public AudioClip sonidoCaptura;
     public AudioClip sonidoMuyLejos;        // Sonido cuando está muy lejos
 
@@ -28,7 +27,6 @@ public class RayCapture : MonoBehaviour
 
     private GameObject objetoApuntado;
     private AudioSource audioSource;
-    private bool rayoActivo = false;
     private Camera mainCamera;
 
     void Start()
@@ -41,7 +39,7 @@ public class RayCapture : MonoBehaviour
             lineRenderer = gameObject.AddComponent<LineRenderer>();
         }
 
-        lineRenderer.enabled = false;
+        lineRenderer.enabled = true;  // Siempre encendido
         lineRenderer.startWidth = 0.1f;
         lineRenderer.endWidth = 0.05f;
         lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
@@ -54,9 +52,9 @@ public class RayCapture : MonoBehaviour
         if (audioSource == null)
             audioSource = gameObject.AddComponent<AudioSource>();
 
-        // Ocultar UI
+        // Mostrar UI desde el inicio
         if (textoDistancia != null)
-            textoDistancia.gameObject.SetActive(false);
+            textoDistancia.gameObject.SetActive(true);
 
         if (indicadorCaptura != null)
             indicadorCaptura.SetActive(false);
@@ -64,59 +62,14 @@ public class RayCapture : MonoBehaviour
 
     void Update()
     {
-        // Activar/desactivar rayo con botón derecho del mouse
-        if (Input.GetMouseButtonDown(1))
+        // Actualizar rayo constantemente
+        DetectarObjetoConRaycast();
+
+        // Capturar con clic izquierdo
+        if (Input.GetMouseButtonDown(0))
         {
-            ActivarRayo();
+            IntentarCapturar();
         }
-
-        if (Input.GetMouseButtonUp(1))
-        {
-            DesactivarRayo();
-        }
-
-        // Si el rayo está activo
-        if (rayoActivo)
-        {
-            DetectarObjetoConRaycast();
-
-            // Capturar con clic izquierdo
-            if (Input.GetMouseButtonDown(0))
-            {
-                IntentarCapturar();
-            }
-        }
-    }
-
-    void ActivarRayo()
-    {
-        rayoActivo = true;
-        if (lineRenderer != null)
-            lineRenderer.enabled = true;
-
-        if (textoDistancia != null)
-            textoDistancia.gameObject.SetActive(true);
-
-        if (sonidoDisparo != null && audioSource != null)
-            audioSource.PlayOneShot(sonidoDisparo);
-
-        Debug.Log("Rayo activado");
-    }
-
-    void DesactivarRayo()
-    {
-        rayoActivo = false;
-        if (lineRenderer != null)
-            lineRenderer.enabled = false;
-
-        if (textoDistancia != null)
-            textoDistancia.gameObject.SetActive(false);
-
-        if (indicadorCaptura != null)
-            indicadorCaptura.SetActive(false);
-
-        objetoApuntado = null;
-        Debug.Log("Rayo desactivado");
     }
 
     void DetectarObjetoConRaycast()
@@ -141,16 +94,16 @@ public class RayCapture : MonoBehaviour
             // Actualizar UI de distancia
             if (textoDistancia != null)
             {
-                textoDistancia.text = $"Distancia: {distancia:F1}m";
+                textoDistancia.text = $"Objetivo: {objetoApuntado.name}\nDistancia: {distancia:F1}m";
 
                 if (distancia <= distanciaCaptura)
                 {
-                    textoDistancia.text += "\n[Click Izquierdo para Capturar]";
+                    textoDistancia.text += "\n[Click para Capturar]";
                     textoDistancia.color = Color.green;
                 }
                 else
                 {
-                    textoDistancia.text += "\n[Muy lejos]";
+                    textoDistancia.text += "\n[Acércate más]";
                     textoDistancia.color = Color.red;
                 }
             }
@@ -202,7 +155,11 @@ public class RayCapture : MonoBehaviour
 
     void IntentarCapturar()
     {
-        if (objetoApuntado == null) return;
+        if (objetoApuntado == null)
+        {
+            Debug.Log("No hay objetivo apuntado");
+            return;
+        }
 
         float distancia = Vector3.Distance(puntoOrigen.position, objetoApuntado.transform.position);
 
@@ -222,14 +179,14 @@ public class RayCapture : MonoBehaviour
 
     void CapturarObjeto(GameObject objeto)
     {
-        Debug.Log("Capturando: " + objeto.name);
+        Debug.Log("¡Capturando: " + objeto.name + "!");
 
-        // Cambiar color del rayo a captura
-        if (lineRenderer != null)
-        {
-            lineRenderer.startColor = colorRayoCapturando;
-            lineRenderer.endColor = colorRayoCapturando;
-        }
+        // Cambiar color del rayo a captura brevemente
+        lineRenderer.startColor = colorRayoCapturando;
+        lineRenderer.endColor = colorRayoCapturando;
+
+        // Volver al color normal después de un breve momento
+        Invoke("RestaurarColorRayo", 0.2f);
 
         // Reproducir sonido
         if (sonidoCaptura != null && audioSource != null)
@@ -248,6 +205,12 @@ public class RayCapture : MonoBehaviour
         objetoApuntado = null;
         if (indicadorCaptura != null)
             indicadorCaptura.SetActive(false);
+    }
+
+    void RestaurarColorRayo()
+    {
+        lineRenderer.startColor = colorRayoNormal;
+        lineRenderer.endColor = colorRayoNormal;
     }
 
     // Visualizar rangos en el editor

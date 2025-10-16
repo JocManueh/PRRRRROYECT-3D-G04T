@@ -4,7 +4,6 @@ public class PlayerMovement3D : MonoBehaviour
 {
     [Header("Movimiento")]
     public float velocidad = 5f;
-    public float velocidadRotacion = 10f;
 
     [Header("Salto")]
     public float fuerzaSalto = 5f;
@@ -14,7 +13,6 @@ public class PlayerMovement3D : MonoBehaviour
 
     private Rigidbody rb;
     private bool enSuelo;
-    private Vector3 movimiento;
 
     void Start()
     {
@@ -30,17 +28,10 @@ public class PlayerMovement3D : MonoBehaviour
 
     void Update()
     {
-        // Input de movimiento
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float vertical = Input.GetAxisRaw("Vertical");
-
-        movimiento = new Vector3(horizontal, 0f, vertical).normalized;
-
-        // Rotar el personaje en dirección del movimiento
-        if (movimiento.magnitude > 0.1f)
+        // Solo movimiento hacia ADELANTE con W
+        if (Input.GetKey(KeyCode.W))
         {
-            Quaternion rotacionObjetivo = Quaternion.LookRotation(movimiento);
-            transform.rotation = Quaternion.Slerp(transform.rotation, rotacionObjetivo, velocidadRotacion * Time.deltaTime);
+            transform.Translate(Vector3.forward * velocidad * Time.deltaTime);
         }
 
         // Saltar
@@ -53,12 +44,10 @@ public class PlayerMovement3D : MonoBehaviour
     void FixedUpdate()
     {
         // Verificar si está en el suelo
-        enSuelo = Physics.CheckSphere(checkSuelo.position, radioCheckSuelo, capaSuelo);
-
-        // Aplicar movimiento
-        Vector3 velocidadObjetivo = movimiento * velocidad;
-        velocidadObjetivo.y = rb.linearVelocity.y; // Mantener velocidad vertical
-        rb.linearVelocity = velocidadObjetivo;
+        if (checkSuelo != null)
+        {
+            enSuelo = Physics.CheckSphere(checkSuelo.position, radioCheckSuelo, capaSuelo);
+        }
     }
 
     void OnDrawGizmosSelected()

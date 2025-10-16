@@ -8,16 +8,11 @@ public class ThirdPersonCamera : MonoBehaviour
     [Header("Posición de la Cámara")]
     public Vector3 offset = new Vector3(0, 5, -7);
     public float suavizado = 5f;
+    public float alturaMinima = 2f;         // Altura mínima de la cámara
 
-    [Header("Rotación con Mouse")]
-    public bool rotarConMouse = true;
-    public float sensibilidadX = 2f;
-    public float sensibilidadY = 2f;
-    public float limiteVerticalMin = -30f;
-    public float limiteVerticalMax = 60f;
-
-    private float rotacionX = 0f;
-    private float rotacionY = 0f;
+    [Header("Seguimiento")]
+    public bool seguirRotacion = true;      // Seguir rotación del personaje
+    public float suavizadoRotacion = 3f;
 
     void Start()
     {
@@ -28,53 +23,31 @@ public class ThirdPersonCamera : MonoBehaviour
                 objetivo = player.transform;
         }
 
-        // Calcular rotación inicial
-        Vector3 angulos = transform.eulerAngles;
-        rotacionX = angulos.y;
-        rotacionY = angulos.x;
-
-        // Ocultar cursor si se rota con mouse
-        if (rotarConMouse)
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
+        // Cursor siempre visible y desbloqueado
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     void LateUpdate()
     {
         if (objetivo == null) return;
 
-        // Rotación con mouse
-        if (rotarConMouse)
-        {
-            rotacionX += Input.GetAxis("Mouse X") * sensibilidadX;
-            rotacionY -= Input.GetAxis("Mouse Y") * sensibilidadY;
-            rotacionY = Mathf.Clamp(rotacionY, limiteVerticalMin, limiteVerticalMax);
-
-            // Desbloquear cursor con ESC
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-            }
-
-            // Volver a bloquear con click
-            if (Input.GetMouseButtonDown(0) && Cursor.lockState == CursorLockMode.None)
-            {
-                Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
-            }
-        }
-
         // Calcular posición deseada
-        Quaternion rotacion = Quaternion.Euler(rotacionY, rotacionX, 0);
+        Quaternion rotacion = seguirRotacion ? objetivo.rotation : Quaternion.identity;
         Vector3 posicionDeseada = objetivo.position + rotacion * offset;
+
+        // Asegurar altura mínima
+        if (posicionDeseada.y < objetivo.position.y + alturaMinima)
+        {
+            posicionDeseada.y = objetivo.position.y + alturaMinima;
+        }
 
         // Suavizar movimiento
         transform.position = Vector3.Lerp(transform.position, posicionDeseada, suavizado * Time.deltaTime);
 
-        // Mirar al objetivo
-        transform.LookAt(objetivo.position + Vector3.up * 1.5f);
+        // Mirar al objetivo suavemente
+        Vector3 direccion = objetivo.position - transform.position;
+        Quaternion rotacionDeseada = Quaternion.LookRotation(direccion);
+        transform.rotation = Quaternion.Slerp(transform.rotation, rotacionDeseada, suavizadoRotacion * Time.deltaTime);
     }
 }

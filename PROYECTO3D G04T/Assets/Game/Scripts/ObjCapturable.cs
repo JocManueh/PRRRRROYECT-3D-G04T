@@ -54,6 +54,6 @@ public class ObjetoCapurable : MonoBehaviour
             Instantiate(efectoDestruccion, transform.position, Quaternion.identity);
         }
 
-
+       
     }
 }
